@@ -17,12 +17,15 @@ A standalone Python runner that uses AppWorld to enumerate tasks and fetch task 
 ### Prerequisites
 
 - Python 3.11 or higher
-- Access to an A2A-compatible agent endpoint
+- Access to an A2A-compatible agent endpoint such as [Simple Generalist in Kagenti examples](a2a/simple_generalist/src/simple_generalist)
+- Access to the AppWorld API server such as [AppWorld Tool in Kagenti](https://github.com/kagenti/agent-examples/tree/main/mcp/appworld_apis)
+- Deploy both the agent and the AppWorld API server on Kagenti. Expose them as external services or `port-forward` to their exposed ports. For the AppWorld API server, you will need to access its REST API interface, which is by default exposed on port `8000`
+
 
 ### Install from source
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:kagenti/workload-harness.git
 cd appworld_a2a_runner
 uv venv
 source .venv/bin/activate
@@ -36,25 +39,30 @@ cp example.env .env
 ```
 Configure the .env file as needed
 
-| Environment Variable | Default Setting | Required? |
-| --- | --- | --- |
-| `A2A_BASE_URL` | `(none)` | Yes |
-| `A2A_TIMEOUT_SECONDS` | `300` | No |
-| `A2A_AUTH_TOKEN` | `(none)` | No |
-| `A2A_VERIFY_TLS` | `true` | No |
-| `A2A_ENDPOINT_PATH` | `/v1/chat` | No |
-| `APPWORLD_DATASET` | `(none)` | Yes |
-| `APPWORLD_REMOTE_APIS_URL` | `(none)` | Yes |
-| `APPWORLD_ROOT` | `(none)` | No |
-| `MAX_TASKS` | `(none)` | No |
-| `ABORT_ON_FAILURE` | `false` | No |
-| `OTEL_SERVICE_NAME` | `appworld-a2a-proxy` | No |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | `(none)` | No |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | No |
-| `OTEL_RESOURCE_ATTRIBUTES` | `(none)` | No |
-| `OTEL_INSTRUMENT_REQUESTS` | `true` | No |
-| `LOG_PROMPT` | `0` | No |
-| `LOG_RESPONSE` | `0` | No |
+Required Variables
+| Environment Variable | Default Setting | Required? | Description |
+| --- | --- | --- | --- |
+| `A2A_BASE_URL` | `(none)` | Yes | Base URL for the target agent to run the tests against. Must be A2A compatible.|
+| `APPWORLD_DATASET` | `test_normal` | Yes | AppWorld dataset to run (for example `test_normal` or `test_challenge`). |
+| `APPWORLD_REMOTE_APIS_URL` | `(none)` | Yes | URL for the AppWorld remote APIs server. |
+
+Optional Variables
+| Environment Variable | Default Setting | Required? | Description |
+| --- | --- | --- | --- |
+| `A2A_TIMEOUT_SECONDS` | `300` | No | Timeout for each A2A request in seconds. |
+| `A2A_AUTH_TOKEN` | `(none)` | No | Bearer token sent for A2A endpoint authentication. |
+| `A2A_VERIFY_TLS` | `true` | No | Whether TLS certificates are verified for HTTPS requests. |
+| `A2A_ENDPOINT_PATH` | `/v1/chat` | No | Endpoint path appended to `A2A_BASE_URL` for requests. |
+| `APPWORLD_ROOT` | `(none)` | No | Overrides the AppWorld root directory path. |
+| `MAX_TASKS` | `(none)` | No | Maximum number of tasks to process before exiting. |
+| `ABORT_ON_FAILURE` | `false` | No | Stops processing after the first failed task when enabled. |
+| `OTEL_SERVICE_NAME` | `appworld-a2a-proxy` | No | OpenTelemetry service name reported with traces. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `(none)` | No | OTLP collector endpoint used to export telemetry. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | No | OTLP transport protocol (`grpc` or `http/protobuf`). |
+| `OTEL_RESOURCE_ATTRIBUTES` | `(none)` | No | Additional OpenTelemetry resource attributes (`key=value`). |
+| `OTEL_INSTRUMENT_REQUESTS` | `true` | No | Enables automatic instrumentation for HTTP requests. |
+| `LOG_PROMPT` | `0` | No | Enables logging of prompt payloads for debugging. |
+| `LOG_RESPONSE` | `0` | No | Enables logging of response payloads for debugging. |
 
 
 ## Usage
@@ -64,24 +72,6 @@ Configure the .env file as needed
 ```bash
 uv run appworld-a2a-runner
 ```
-
-## A2A Protocol Format
-
-The runner communicates with A2A endpoints using JSON-RPC over HTTP (no SDK dependencies to avoid conflicts with AppWorld).
-
-### Discovery and Endpoint Resolution
-
-The runner first fetches:
-
-```text
-GET {A2A_BASE_URL}/.well-known/agent-card.json
-```
-
-Then resolves the RPC URL using this precedence:
-
-1. If agent card `url` has a non-root path, use it directly.
-2. Otherwise use `{service_base}{A2A_ENDPOINT_PATH}`.
-3. If card fetch fails, use `{A2A_BASE_URL}{A2A_ENDPOINT_PATH}`.
 
 ## Output
 
