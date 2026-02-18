@@ -92,7 +92,8 @@ class OTELConfig:
     exporter_protocol: str = "grpc"
     resource_attributes: Optional[str] = None
     instrument_requests: bool = True
-    
+    exporter_insecure: bool = True
+
     @classmethod
     def from_env(cls) -> "OTELConfig":
         """Load OTEL configuration from environment variables."""
@@ -102,6 +103,7 @@ class OTELConfig:
             exporter_protocol=os.getenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"),
             resource_attributes=os.getenv("OTEL_RESOURCE_ATTRIBUTES"),
             instrument_requests=_get_bool("OTEL_INSTRUMENT_REQUESTS", True),
+            exporter_insecure=_get_bool("OTEL_EXPORTER_OTLP_INSECURE", True),
         )
 
 

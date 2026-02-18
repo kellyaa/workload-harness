@@ -31,19 +31,23 @@ def serialize_supervisor(supervisor: Union[str, Dict[str, Any], None]) -> str:
 
 def build_prompt(instruction: str, supervisor: Union[str, Dict[str, Any], None], app_descriptions: dict[str, str]) -> str:
     """Build prompt according to exact specification.
-    
+
     The prompt format is:
-    
-    The following user:
+
+    I am your supervisor:
     {supervisor_text}
-    
-    Is giving the following instruction:
+
+    The task you are to complete is:
     {instruction_text}
-    
+
+    The applications available to you to help you complete the task are the following:
+    {app_descriptions}
+
     Args:
         instruction: Task instruction text
         supervisor: Supervisor data (string, dict, or None)
-        
+        app_descriptions: Mapping of application names to their descriptions
+
     Returns:
         Formatted prompt string
     """

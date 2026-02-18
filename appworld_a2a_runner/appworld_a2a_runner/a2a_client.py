@@ -146,7 +146,10 @@ class A2AProxyClient:
         data = response.json()
         if "error" in data:
             raise RuntimeError(f"JSON-RPC error: {data['error']}")
-        
+
+        if "result" not in data:
+            raise RuntimeError(f"JSON-RPC response missing 'result' field: {data}")
+
         return data["result"]
     
     def _extract_text_from_message(self, message: Dict[str, Any]) -> str:
@@ -302,7 +305,7 @@ class A2AProxyClient:
                 )
                 request_id += 1
 
-                logger.info(task)
+                logger.debug("Task poll response: %s", task)
                 
                 state = task.get("status", {}).get("state")
                 logger.debug(f"Task {task_id} state: {state}")

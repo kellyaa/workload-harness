@@ -35,6 +35,8 @@ class OTELInstrumentation:
         self.config = config
         self.tracer: Optional[trace.Tracer] = None
         self.meter: Optional[metrics.Meter] = None
+        self._trace_provider: Optional[TracerProvider] = None
+        self._meter_provider: Optional[MeterProvider] = None
         
         # Metrics
         self.tasks_counter: Optional[metrics.Counter] = None
@@ -81,7 +83,7 @@ class OTELInstrumentation:
             logger.info(f"Configuring OTLP trace exporter: {self.config.exporter_endpoint}")
             span_exporter = OTLPSpanExporter(
                 endpoint=self.config.exporter_endpoint,
-                insecure=True,  # TODO: Make configurable
+                insecure=self.config.exporter_insecure,
             )
         else:
             # Use console exporter for development
@@ -90,7 +92,8 @@ class OTELInstrumentation:
         
         trace_provider.add_span_processor(BatchSpanProcessor(span_exporter))
         trace.set_tracer_provider(trace_provider)
-        
+        self._trace_provider = trace_provider
+
         self.tracer = trace.get_tracer(__name__)
     
     def _initialize_auto_instrumentation(self) -> None:
@@ -115,7 +118,7 @@ class OTELInstrumentation:
             logger.info(f"Configuring OTLP metric exporter: {self.config.exporter_endpoint}")
             metric_exporter = OTLPMetricExporter(
                 endpoint=self.config.exporter_endpoint,
-                insecure=True,  # TODO: Make configurable
+                insecure=self.config.exporter_insecure,
             )
             metric_reader = PeriodicExportingMetricReader(metric_exporter)
             metric_readers.append(metric_reader)
@@ -128,7 +131,8 @@ class OTELInstrumentation:
             metric_readers=metric_readers,
         )
         metrics.set_meter_provider(meter_provider)
-        
+        self._meter_provider = meter_provider
+
         self.meter = metrics.get_meter(__name__)
         
         # Create metric instruments
@@ -174,6 +178,14 @@ class OTELInstrumentation:
             unit="1",
         )
     
+    def shutdown(self) -> None:
+        """Shut down OTEL providers to flush pending spans and metrics."""
+        logger.info("Shutting down OpenTelemetry providers")
+        if self._trace_provider:
+            self._trace_provider.shutdown()
+        if self._meter_provider:
+            self._meter_provider.shutdown()
+
     @contextmanager
     def task_span(
         self,

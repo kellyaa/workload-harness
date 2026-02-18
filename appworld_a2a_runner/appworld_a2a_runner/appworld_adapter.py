@@ -109,13 +109,16 @@ class AppWorldAdapter:
         logger.debug(f"Task {task_id}: instruction length={len(instruction)}, "
                     f"supervisor type={type(supervisor).__name__}")
         
+        # Capture app_descriptions before closing to avoid use-after-close
+        app_descriptions = task.app_descriptions
+
         # Close the task to free resources
         task.close()
         return TaskData(
             task_id=task_id,
             instruction=instruction,
             supervisor=supervisor,
-            app_descriptions=task.app_descriptions
+            app_descriptions=app_descriptions,
         )
     
     def iterate_tasks(self) -> Iterator[TaskData]:

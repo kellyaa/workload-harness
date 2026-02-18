@@ -65,7 +65,7 @@ class RunSummary:
         # Calculate percentiles
         sorted_latencies = sorted(latencies)
         p50 = sorted_latencies[len(sorted_latencies) // 2] if sorted_latencies else 0
-        p95_idx = int(len(sorted_latencies) * 0.95)
+        p95_idx = min(int(len(sorted_latencies) * 0.95), len(sorted_latencies) - 1)
         p95 = sorted_latencies[p95_idx] if sorted_latencies else 0
         
         return {
@@ -201,29 +201,31 @@ class Runner:
         """
         try:
             self.initialize()
-            
+
             # Process tasks sequentially
             for task_data in self.appworld.iterate_tasks():
                 result = self.process_task(task_data)
                 self.summary.add_result(result)
-                
+
                 # Check abort on failure
                 if not result.success and self.config.appworld.abort_on_failure:
                     logger.error("Aborting due to task failure (ABORT_ON_FAILURE=true)")
                     break
-            
+
             # Print summary
             self.summary.print_summary()
-            
+
             # Return success if at least one task succeeded
             if any(r.success for r in self.summary.results):
                 return 0
             else:
                 return 1
-                
+
         except Exception as e:
             logger.exception(f"Fatal error in runner: {e}")
             return 1
+        finally:
+            self.otel.shutdown()
 
 
 def parse_args() -> argparse.Namespace:
@@ -253,6 +255,7 @@ Environment Variables:
   OTEL_EXPORTER_OTLP_ENDPOINT  OTLP exporter endpoint
   OTEL_EXPORTER_OTLP_PROTOCOL  OTLP protocol (default: grpc)
   OTEL_RESOURCE_ATTRIBUTES  Additional resource attributes
+  OTEL_EXPORTER_OTLP_INSECURE  Use insecure connection for OTLP (default: true)
   
   LOG_PROMPT                Log prompt details (default: 0)
   LOG_RESPONSE              Log response details (default: 0)
